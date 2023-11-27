@@ -11,10 +11,10 @@ router.post('/applications', createApplicationController);
 router.get('/:username/applications', getAllApplicationsForUserController);
 
 // Route for getting one application by ID for a user
-router.get('/:username/applications/:id', getApplicationByIdForUserController);
+router.get('/:username/applications/:applicationId', getApplicationByIdForUserController);
 
 // Route for editing an application by a user
-router.put('/:username/applications/:id', editApplicationByUserController);
+router.put('/:username/applications/:applicationId', editApplicationByUserController);
 
 
 export default router;
