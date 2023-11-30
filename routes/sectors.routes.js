@@ -1,5 +1,5 @@
 import express from "express";
-import { getAllSectorsController, getSectorByIdController } from "../controllers/sectors/sectors.controller.js";
+import { getAllSectorsController } from "../controllers/sectors/sectors.controller.js";
 
 
 const router = express.Router();
@@ -8,7 +8,6 @@ const router = express.Router();
 router.get('/get-sectors', getAllSectorsController)
 
 // Get Sector by ID
-router.get('/get-sector/:sectorId', getSectorByIdController)
 
 
 export default router;
