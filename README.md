@@ -27,7 +27,7 @@
 - server.js: Entry point of the application.
 - package.json: File containing metadata and dependencies for the Node.js project.
 
-
+```
 .
 ├── /config
 |   └──db.js
@@ -51,4 +51,4 @@
 │   └── error.js
 ├── server.js
 └── package.json
-
+```
