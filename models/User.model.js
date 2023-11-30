@@ -10,7 +10,9 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    applications: [Application.schema],
+    token: {
+        type: String
+    },
 }, { timestamps: true });
 
 

@@ -5,18 +5,18 @@ const ApplicationSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    sectors: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Sector',
-        required: true
-    }],
+    sectors: {
+        id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Sector',
+        },
+        name: {
+            type: String,
+            required: true
+        }
+    },
     termsOfService: {
         type: Boolean,
-        required: true
-    },
-    username: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
         required: true
     },
 }, { timestamps: true });

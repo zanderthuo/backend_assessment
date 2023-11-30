@@ -1,144 +1,172 @@
 import User from '../../models/User.model.js';
 import Application from '../../models/Application.model.js';
+import Sector from '../../models/Sectors.model.js';
 
-// Todo: Fix issue with find application by id for a user and the edit
-
-//create application
 export const createApplicationController = async(req, res) => {
     try {
-        // const { userId } = req.params;
-        const { username, name, sectors, termsOfService } = req.body;
+        const { name, sectors, termsOfService } = req.body;
 
-        const user = await User.findOne({ username })
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+        // Find the sector by its name to get its corresponding ID
+        const sector = await Sector.findOne({
+            $or: [
+                { 'categories.subcategories.name': sectors },
+                { 'categories.subcategories.subsubcategories.name': sectors },
+                { 'categories.subcategories.subsubcategories.subsubsubcategories.name': sectors }
+            ]
+        });
+
+        if (!sector) {
+            return res.status(404).json({
+                message: 'Sector not found',
+            });
         }
 
-        // Create the Application
+        // Extract the subcategory, subsubcategory, or subsubsubcategory object matching the sectors
+        let foundSubcategory = null;
+
+        sector.categories.forEach(category => {
+            if (!foundSubcategory) {
+                category.subcategories.forEach(sub => {
+                    if (!foundSubcategory && sub.name === sectors) {
+                        foundSubcategory = sub;
+                    } else if (sub.subsubcategories) {
+                        sub.subsubcategories.forEach(subsub => {
+                            if (!foundSubcategory && subsub.name === sectors) {
+                                foundSubcategory = subsub;
+                            } else if (subsub.subsubsubcategories) {
+                                subsub.subsubsubcategories.forEach(subsubsub => {
+                                    if (!foundSubcategory && subsubsub.name === sectors) {
+                                        foundSubcategory = subsubsub;
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        if (!foundSubcategory) {
+            return res.status(404).json({
+                message: 'Subcategory not found',
+            });
+        }
+
+        const sectorId = foundSubcategory._id; // Extracted sector ID
+
+        // Create the Application with the sector ID and name
         const application = await Application.create({
-            username: user._id,
             name,
-            sectors,
+            sectors: {
+                id: sectorId,
+                name: sectors // Storing the sector name as well
+            },
             termsOfService,
         });
 
-        await application.save()
-
-        user.applications.push(application);
-        await user.save();
+        await application.save();
 
         res.status(201).json({
             message: 'Application added successfully',
-            application
+            application,
         });
     } catch (error) {
         res.status(500).json({
             error: error.message,
-            message: 'Error creating application'
+            message: 'Error creating application',
         });
     }
 };
 
 
-// Get all applications for a user
-export const getAllApplicationsForUserController = async(req, res) => {
+
+
+// Get All Applications
+export const getAllApplicationsController = async(req, res, next) => {
     try {
-        const { username } = req.params;
-
-        const user = await User.findOne({ username }).populate('applications');
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        res.status(200).json({
-            applications: user.applications
-        });
+        const applications = await Application.find();
+        // if query successfully send status code is 200
+        res.status(200).json(applications);
     } catch (error) {
-        res.status(500).json({
-            error: error.message,
-            message: 'Error fetching applications for the user'
-        });
+        // if any error return send status code 500
+        res.status(500).json(error)
     }
+}
+
+export const getApplicationsByIdController = async(req, res, next) => {
+    try {
+        const application = await Application.findById(req.params.id);
+        // if query successfully send status code is 200
+        res.status(200).json(application);
+    } catch (err) {
+        // if any error return send status code 500
+        next(err)
+    }
+}
+
+// Function to get the sector ID by name
+const getSectorIdByName = async(sectorName) => {
+    const sector = await Sector.findOne({ name: sectorName });
+    return sector ? sector._id : null;
 };
 
-// get one application by id for a specific user
-export const getApplicationByIdForUserController = async(req, res) => {
+
+// update application
+export const updateApplicationController = async(req, res) => {
     try {
-        const { username, applicationId } = req.params;
+        const applicationId = req.params.applicationId;
+        const updateFields = req.body;
 
-        // find user by username
-        const user = await User.findOne({ username });
+        // Check if the request contains the sector name to update
+        const { sectorName, ...otherUpdateFields } = updateFields;
 
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+        let updatedApplication = null;
+
+        if (sectorName) {
+            // Get the sector ID based on the provided sector name
+            const sectorId = await getSectorIdByName(sectorName);
+
+            if (!sectorId) {
+                return res.status(404).json({ message: 'Sector not found' });
+            }
+
+            // Update the sector ID along with other fields
+            const updatedFields = {
+                ...otherUpdateFields,
+                sector: {
+                    id: sectorId,
+                    name: sectorName,
+                },
+            };
+
+            // Find the Application by ID and update the fields
+            updatedApplication = await Application.findByIdAndUpdate(
+                applicationId,
+                updatedFields, {
+                    new: true, // To return the updated application
+                    runValidators: true, // To run schema validation on update
+                }
+            );
+        } else {
+            // If no sector update is required, update other fields directly
+            updatedApplication = await Application.findByIdAndUpdate(
+                applicationId,
+                otherUpdateFields, {
+                    new: true,
+                    runValidators: true,
+                }
+            );
         }
-
-        // Find the application by ID within the user's applications array
-        const application = user.applications.find(app => app._id.toString() === applicationId);
-
-        if (!application) {
-            return res.status(404).json({ message: 'Application not found for this user' });
-        }
-
-        res.status(200).json({ application });
-
-        // res.status(200).json({ application });
-    } catch (error) {
-        res.status(500).json({
-            error: error.message,
-            message: 'Error fetching user application by ID'
-        });
-    }
-};
-
-// edit application by id for a specific user
-export const editApplicationByUserController = async(req, res) => {
-    try {
-        const { username, applicationId } = req.params;
-        const updatedApplicationData = req.body;
-
-        const user = await User.findOne({ username });
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        // Find the application by ID within the user's applications array
-        const applicationToUpdate = user.applications.find(app => app._id.toString() === applicationId);
-
-        if (!applicationToUpdate) {
-            return res.status(404).json({ message: 'Application not found for this user' });
-        }
-
-        const application = user.applications.find(app => app._id.toString() === applicationId);
-        if (!application) {
-            return res.status(404).json({ error: 'Application not found for the user' });
-        }
-
-        // Update the application data
-        Object.assign(applicationToUpdate, updatedApplicationData);
-
-        // Save the user (with updated application)
-        await user.save();
-
-        // update the application in the application schema
-        const updatedApplication = await Application.findByIdAndUpdate(
-            applicationId,
-            updatedApplicationData, { new: true }
-        );
 
         if (!updatedApplication) {
-            return res.status(404).json({ message: 'Application not found' });
+            return res.status(404).json({ message: 'App not found' });
         }
 
         res.status(200).json({
-            message: 'Application updated successfully',
-            application: updatedApplication,
+            message: 'Application Edited successfully',
+            updatedApplication,
         });
-
-    } catch (error) {
-        res.status(500).json({
-            error: error.message,
-            message: 'Error updating user application'
-        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 };

@@ -1,5 +1,10 @@
 import express from "express";
-import { createApplicationController, editApplicationByUserController, getAllApplicationsForUserController, getApplicationByIdForUserController } from "../controllers/user/user.controller.js";
+import {
+    createApplicationController,
+    getAllApplicationsController,
+    getApplicationsByIdController,
+    updateApplicationController
+} from "../controllers/user/user.controller.js";
 
 
 const router = express.Router();
@@ -8,13 +13,13 @@ const router = express.Router();
 router.post('/applications', createApplicationController);
 
 // Route for getting all applications for a user
-router.get('/:username/applications', getAllApplicationsForUserController);
+router.get('/applications', getAllApplicationsController);
 
-// Route for getting one application by ID for a user
-router.get('/:username/applications/:applicationId', getApplicationByIdForUserController);
+// Route for getting one application by ID
+router.get('/applications/:id', getApplicationsByIdController);
 
 // Route for editing an application by a user
-router.put('/:username/applications/:applicationId', editApplicationByUserController);
+router.put('/applications/:applicationId', updateApplicationController);
 
 
 export default router;

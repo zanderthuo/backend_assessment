@@ -1,9 +1,23 @@
 import mongoose from 'mongoose';
 
-const SubcategorySchema = new mongoose.Schema({
+const SubSubSubCategorySchema = new mongoose.Schema({
     name: {
         type: String,
     }
+});
+
+const SubSubCategorySchema = new mongoose.Schema({
+    name: {
+        type: String,
+    },
+    subsubsubcategories: [SubSubSubCategorySchema]
+});
+
+const SubcategorySchema = new mongoose.Schema({
+    name: {
+        type: String,
+    },
+    subsubcategories: [SubSubCategorySchema]
 });
 
 const CategorySchema = new mongoose.Schema({
